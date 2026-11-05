@@ -26,9 +26,15 @@
     </style>
 </head>
 <body class="h-full flex items-center justify-center p-4">
+    <audio id="bg-music" src="game show theme song 30 minutes.mp3" loop preload="auto"></audio>
+    <audio id="sfx-correct" src="sonido_respuesta_correcta_confeti.wav" preload="auto"></audio>
+<audio id="sfx-wrong" src="sonido_respuesta_incorrecta_caricaturesco.wav" preload="auto"></audio>
 
     <div id="game-container" class="w-full max-w-lg glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden my-auto">
-        
+        <button id="btn-music" type="button" aria-label="Activar o silenciar música"
+    class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 shadow flex items-center justify-center transition-all">
+    <i id="music-icon" class="fa-solid fa-volume-high"></i>
+</button>
         <!-- ================= PANTALLA DE INICIO ================= -->
         <div id="screen-start" class="text-center py-4 space-y-6">
             <div class="inline-block rounded-full overflow-hidden shadow-lg bg-white">
@@ -43,10 +49,22 @@
             <div class="bg-emerald-100 text-emerald-700 p-2.5 rounded-xl flex flex-col items-center gap-1 font-bold">
                 <i class="fa-solid fa-money-bill-wave text-lg text-emerald-500"></i> Aguinaldo
             </div>
+<div>
+    <input id="player-name" type="text" maxlength="15" placeholder="Escribí tu nombre"
+        class="w-full py-3 px-4 rounded-2xl border-2 border-slate-200 text-center font-semibold text-slate-700 focus:outline-none focus:border-indigo-400">
+    <p id="name-error" class="hidden text-rose-500 text-xs font-semibold mt-1">Ingresá tu nombre para jugar</p>
+</div>
 
-            <button id="btn-start" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-indigo-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+<button id="btn-start" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-indigo-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-play"></i> ¡Comenzar Juego!
             </button>
+
+<div class="text-left">
+    <h3 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+        <i class="fa-solid fa-trophy text-amber-500"></i> Ranking
+    </h3>
+    <ol id="ranking-start" class="space-y-1.5 text-sm"></ol>
+</div>
         </div>
 
         <!-- ================= PANTALLA DE JUEGO ================= -->
@@ -105,6 +123,9 @@
                 <span>Puntaje: <strong id="score-text" class="text-indigo-600 font-bold text-sm">0</strong></span>
                 
                 <div class="flex items-center gap-2">
+                    <button id="btn-home-quiz" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-sm transition-all shadow" aria-label="Volver al inicio">
+                        <i class="fa-solid fa-house"></i>
+                    </button>
                     <button id="btn-prev" class="hidden px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-sm transition-all shadow">
                         <i class="fa-solid fa-arrow-left mr-1"></i> Anterior
                     </button>
@@ -146,9 +167,17 @@
                     <span id="final-streak" class="text-2xl font-extrabold text-amber-500">0 🔥</span>
                 </div>
             </div>
-
+<div class="text-left">
+    <h3 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+        <i class="fa-solid fa-trophy text-amber-500"></i> Ranking
+    </h3>
+    <ol id="ranking-result" class="space-y-1.5 text-sm"></ol>
+</div>
             <button id="btn-restart" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-indigo-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-rotate-right"></i> Jugar de Nuevo
+            </button>
+                        <button id="btn-home-result" class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-2xl transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-house"></i> Volver al Inicio
             </button>
         </div>
 
@@ -184,7 +213,7 @@
             pregunta: "¿Por qué se paga?",
             opciones: ["Por ley", "Para darle un bono al empleado", "Para reconocer el trabajo del empleado", "Todas son correctas"],
             correcta: 3,
-            explicacion: "Las tres opciones son ciertas a la vez: se paga porque lo exige la ley, es un beneficio para el empleado y reconoce su trabajo. Por eso la respuesta es \"Todas las anteriores\"."
+            explicacion: "Las tres opciones son ciertas a la vez: se paga porque lo exige la ley, es un beneficio para el empleado y reconoce su trabajo. Por eso la respuesta es \"Todas son correctas\"."
         },
         {
             categoria: "Aguinaldo",
@@ -233,7 +262,7 @@
         "¡Genial! Vas por buen camino."
     ];
 
-    const TIME_PER_QUESTION = 15;
+    const TIME_PER_QUESTION = 20;
     const TOTAL_QUESTIONS_PER_GAME = 6;
 
     let gameQuestions = [];
@@ -270,6 +299,56 @@
     const feedbackTitle = document.getElementById('feedback-title');
     const feedbackText = document.getElementById('feedback-text');
 
+           const RANKING_KEY = 'aguinaldin-ranking';
+    let playerName = '';
+
+    function getRanking() {
+        try {
+            return JSON.parse(localStorage.getItem(RANKING_KEY)) || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    // Guarda solo si es el mejor puntaje de ese nombre
+    function saveScore(name, score) {
+        const ranking = getRanking();
+        const existing = ranking.find(r => r.name.toLowerCase() === name.toLowerCase());
+        if (existing) {
+            if (score > existing.score) existing.score = score;
+        } else {
+            ranking.push({ name, score });
+        }
+        ranking.sort((a, b) => b.score - a.score);
+        try {
+            localStorage.setItem(RANKING_KEY, JSON.stringify(ranking.slice(0, 20)));
+        } catch (e) {}
+    }
+
+    function renderRanking(listEl) {
+        const ranking = getRanking().slice(0, 5);
+        listEl.innerHTML = '';
+        if (ranking.length === 0) {
+            listEl.innerHTML = '<li class="text-slate-400 text-center">Todavía no hay puntajes. ¡Sé el primero!</li>';
+            return;
+        }
+        const medals = ['🥇', '🥈', '🥉'];
+        ranking.forEach((r, i) => {
+            const li = document.createElement('li');
+            const isMe = r.name.toLowerCase() === playerName.toLowerCase();
+            li.className = `flex items-center justify-between px-3 py-2 rounded-xl ${isMe ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-50 text-slate-700'} font-semibold`;
+            const pos = document.createElement('span');
+            pos.textContent = `${medals[i] || (i + 1) + '.'} `;
+            const nameEl = document.createElement('span');
+            nameEl.className = 'flex-1 ml-2 truncate';
+            nameEl.textContent = r.name;
+            const pts = document.createElement('span');
+            pts.textContent = r.score;
+            li.append(pos, nameEl, pts);
+            listEl.appendChild(li);
+        });
+    }
+
     function shuffleArray(array) {
         const arr = [...array];
         for (let i = arr.length - 1; i > 0; i--) {
@@ -278,6 +357,7 @@
         }
         return arr;
     }
+
 
     // Oculta el cartel
     function hideFeedback() {
@@ -322,8 +402,23 @@
         return { score, streak, maxStreak, correctAnswersCount };
     }
 
-    function startGame() {
-        const shuffled = shuffleArray(QUESTION_BANK);
+function startGame() {
+    const input = document.getElementById('player-name');
+    const nameError = document.getElementById('name-error');
+    if (!screenStart.classList.contains('hidden')) {
+        const typed = input.value.trim();
+        if (!typed) {
+            nameError.classList.remove('hidden');
+            input.focus();
+            return;
+        }
+        nameError.classList.add('hidden');
+        playerName = typed;
+    }
+
+    playMusic();
+
+    const shuffled = shuffleArray(QUESTION_BANK);
         gameQuestions = shuffled.slice(0, Math.min(TOTAL_QUESTIONS_PER_GAME, shuffled.length)).map(q => {
             const originalOptions = q.opciones.map((opt, idx) => ({ text: opt, isCorrect: idx === q.correcta }));
             return {
@@ -461,10 +556,12 @@
         buttons.forEach(btn => btn.disabled = true);
 
         if (selectedOption.isCorrect) {
+            playSfx(sfxCorrect);
             selectedBtn.classList.add('correct-anim');
             const icon = selectedBtn.querySelector('i');
             icon.className = "fa-solid fa-circle-check opacity-100 text-white";
         } else {
+            playSfx(sfxWrong);
             selectedBtn.classList.add('wrong-anim');
             const icon = selectedBtn.querySelector('i');
             icon.className = "fa-solid fa-circle-xmark opacity-100 text-white";
@@ -513,7 +610,18 @@
         recalculateStats();
         btnNext.classList.remove('hidden');
     }
+    function goHome() {
+        clearInterval(timerInterval);
+        hideFeedback();
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
 
+        screenQuiz.classList.add('hidden');
+        screenResult.classList.add('hidden');
+        screenStart.classList.remove('hidden');
+
+        renderRanking(document.getElementById('ranking-start'));
+    }
     function prevQuestion() {
         if (currentQuestionIndex > 0) {
             currentQuestionIndex--;
@@ -531,12 +639,15 @@
     }
 
     function showResults() {
+        bgMusic.pause();
         clearInterval(timerInterval);
         hideFeedback();
         screenQuiz.classList.add('hidden');
         screenResult.classList.remove('hidden');
 
         const stats = recalculateStats();
+        saveScore(playerName, stats.score);
+renderRanking(document.getElementById('ranking-result'));
         const accuracy = Math.round((stats.correctAnswersCount / gameQuestions.length) * 100);
 
         document.getElementById('final-score').textContent = stats.score;
@@ -566,11 +677,48 @@
             resultSubtitle.textContent = "¡No te rindas! Vuelve a intentarlo para superar tu marca.";
         }
     }
+renderRanking(document.getElementById('ranking-start'));
+const bgMusic = document.getElementById('bg-music');
+const btnMusic = document.getElementById('btn-music');
+const musicIcon = document.getElementById('music-icon');
+let musicOn = true;
 
+bgMusic.volume = 0.3; 
+
+function playMusic() {
+    if (!musicOn) return;
+    bgMusic.play().catch(() => {});
+}
+const sfxCorrect = document.getElementById('sfx-correct');
+const sfxWrong = document.getElementById('sfx-wrong');
+
+function playSfx(sound) {
+    if (!musicOn) return;
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+}
+
+function toggleMusic() {
+    musicOn = !musicOn;
+    if (musicOn) {
+        bgMusic.play().catch(() => {});
+        musicIcon.className = 'fa-solid fa-volume-high';
+    } else {
+        bgMusic.pause();
+        musicIcon.className = 'fa-solid fa-volume-xmark';
+    }
+}
+
+btnMusic.addEventListener('click', toggleMusic);
     btnStart.addEventListener('click', startGame);
     btnNext.addEventListener('click', nextQuestion);
     btnPrev.addEventListener('click', prevQuestion);
     btnRestart.addEventListener('click', startGame);
+        document.getElementById('btn-home-result').addEventListener('click', goHome);
+    document.getElementById('btn-home-quiz').addEventListener('click', () => {
+        if (confirm('¿Querés abandonar la partida? Se perderá tu progreso.')) goHome();
+    });
     </script>
 </body>
 </html>
+
